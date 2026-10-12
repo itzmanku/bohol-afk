@@ -5,65 +5,79 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// Render Web Endpoint to confirm active uptime status
 app.get('/', (req, res) => {
-  res.send('Bohol Cloud Engine: 100% Operational');
+  res.send('Bohol Cloud Engine: Running');
 });
 
 app.listen(PORT, () => {
-  console.log(`Web proxy handler successfully listening on port ${PORT}`);
+  console.log(`Web server listening on port ${PORT}`);
 });
 
-// Self-ping framework loop to completely prevent Render from freezing the process
+// Self-ping to prevent Render from freezing the container
 setInterval(() => {
   if (process.env.RENDER_EXTERNAL_URL) {
-    http.get(process.env.RENDER_EXTERNAL_URL, (res) => {
-      console.log('Self-ping executed successfully to maintain background socket stream.');
-    });
+    http.get(process.env.RENDER_EXTERNAL_URL, (res) => {});
   }
-}, 60000); // Pings every 60 seconds
+}, 60000);
 
-// Main Minecraft Bot Engine
+// Main Minecraft Client
 const bot = mineflayer.createBot({
   host: 'play.boholmc.net',
   username: 'YTXMANKU',
   version: '1.21.1',
   auth: 'offline',
-  viewDistance: 'tiny', // Drastically lowers RAM load on Render
-  checkTimeoutInterval: 60 * 1000 // Prevents sudden network timed-out drops
+  viewDistance: 'tiny',
+  checkTimeoutInterval: 90 * 1000 // Extended timeout threshold
 });
+
+// Real-player simulator loop (Moves head to look like a human)
+let lookToggle = true;
+function simulateHumanLook() {
+  if (bot.entity) {
+    if (lookToggle) {
+      bot.look(0.5, 0, true); // Look slightly right
+    } else {
+      bot.look(-0.5, 0, true); // Look slightly left
+    }
+    lookToggle = !lookToggle;
+  }
+}
 
 bot.on('spawn', () => {
-  console.log('SUCCESS: Character YTXMANKU logged into Bohol Network lobby!');
+  console.log('SUCCESS: Character YTXMANKU spawned in lobby.');
   
-  // Wait 3 seconds, then execute AuthMe password sequence
+  // Start the head movement loop immediately to bypass bot-blockers
+  const headMovementInterval = setInterval(simulateHumanLook, 2000);
+
+  // Step 1: Log in after 3 seconds
   setTimeout(() => {
     bot.chat('/login 23072009');
+    console.log('Sent login command.');
   }, 3000);
 
-  // Wait 7 seconds, then shift over to the Economy server instance safely
+  // Step 2: Switch to Economy after 8 seconds
   setTimeout(() => {
     bot.chat('/server economy');
-    console.log('SUCCESS: Character transferred to Economy!');
-  }, 7000);
+    console.log('Sent server transfer command.');
+  }, 8000);
 });
 
-// Anti-AFK looping system to prevent automated idle kicks
+// Simple Jump cycle every 35 seconds to beat standard AFK timers
 setInterval(() => {
   if (bot.entity) {
     bot.setControlState('jump', true);
     setTimeout(() => bot.setControlState('jump', false), 500);
   }
-}, 30000); // Soft jump every 30 seconds
+}, 35000);
 
-// Auto-Reconnect System (Configured for a 4-minute delay)
+// Auto-Reconnect System (4 minutes)
 bot.on('end', (reason) => {
-  console.log(`Connection dropped. Reason: ${reason}. Restarting script container in 4 minutes...`);
+  console.log(`Server disconnected. Reason: ${reason}. Retrying in 4 minutes...`);
   setTimeout(() => {
-    process.exit(1); // Safely reboots the engine block
+    process.exit(1); // Safely triggers Render's auto-restart
   }, 240000); 
 });
 
 bot.on('error', (err) => {
-  console.log(`Internal Error encountered: ${err.message}. Retrying...`);
+  console.log(`Network error: ${err.message}`);
 });
