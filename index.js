@@ -9,7 +9,7 @@ app.listen(process.env.PORT || 3000);
 const bot = mineflayer.createBot({
   host: 'play.boholmc.net',
   username: 'YTXMANKU', // Your cracked username
-  version: '26.2', // Adjusted explicitly for your Java 26.2 version
+  version: '1.21.1', // Adjusted explicitly for your Java 26.2 version
   auth: 'offline'
 });
 
